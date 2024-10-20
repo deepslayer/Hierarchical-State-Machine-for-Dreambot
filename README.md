@@ -56,14 +56,6 @@ This hierarchical state machine framework is a powerful tool for building advanc
 
 ```markdown
 
-## How the Framework Works
-
-- **Real-Time Game State Responsiveness**: After every state execution, the bot returns control to DreamBot’s `onLoop()`, ensuring that the bot always operates on the most current game state.
-- **Sequential and Conditional Logic**: `SequenceState` ensures that tasks are performed step-by-step in a specific order, while `DecisionState` enables flexible branching logic for adaptive bots.
-- **Nested States**: States can be nested to handle multi-layered logic, such as making decisions based on health levels, combat engagement, or loot availability.
-
----
-
 ## How to Use the Framework
 
 ### 1. **Setting Up the Main Class**
