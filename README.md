@@ -53,3 +53,250 @@ The `DecisionState` class provides a branching mechanism where it checks each ch
 - **Ease of Use**: Adding new states or modifying existing logic is straightforward, and the `DecisionState` and `SequenceState` classes make it easy to organize both conditional logic and sequential tasks.
 
 This hierarchical state machine framework is a powerful tool for building advanced OSRS bots, offering flexibility, adaptability, and efficiency while ensuring that your bot always operates in sync with the game's real-time state.
+
+```markdown
+# OSRS Bot Hierarchical State Machine Framework
+
+This framework provides a flexible **hierarchical state machine** for developing advanced OSRS bots using DreamBot. With three main state types—`AbstractState`, `SequenceState`, and `DecisionState`—the framework allows for complex decision-making, sequential execution of tasks, and constant responsiveness to game state changes.
+
+## Key Features
+
+- **AbstractState**: Base class that all other states extend. Defines basic methods for entering, executing, exiting, and checking validity and completion.
+- **SequenceState**: Executes a series of subtasks in a specific order. Great for scenarios like looting multiple items or performing a series of combat moves.
+- **DecisionState**: Implements branching logic to determine which substate to run. It can contain both `SequenceState` and other `DecisionState` instances, allowing for nested decisions (e.g., should I heal, attack, or loot?).
+
+## How the Framework Works
+
+- **Real-Time Game State Responsiveness**: After every state execution, the bot returns control to DreamBot’s `onLoop()`, ensuring that the bot always operates on the most current game state.
+- **Sequential and Conditional Logic**: `SequenceState` ensures that tasks are performed step-by-step in a specific order, while `DecisionState` enables flexible branching logic for adaptive bots.
+- **Nested States**: States can be nested to handle multi-layered logic, such as making decisions based on health levels, combat engagement, or loot availability.
+
+---
+
+## How to Use the Framework
+
+### 1. **Setting Up the Main Class**
+
+Here’s a generic example of how to initialize the state machine in DreamBot:
+
+```java
+package Main;
+
+import Framework.StateMachine.StateMachine;
+import org.dreambot.api.script.AbstractScript;
+import org.dreambot.api.script.Category;
+import org.dreambot.api.script.ScriptManifest;
+
+import static org.dreambot.api.utilities.Logger.log;
+
+@ScriptManifest(author = "Your Name", name = "Combat State Machine Bot", version = 1.0, description = "A simple combat bot using state machine", category = Category.COMBAT)
+public class Main extends AbstractScript {
+    private StateMachine stateMachine;
+
+    @Override
+    public void onStart() {
+        log("Script Started...");
+
+        // Initialize the state machine
+        stateMachine = new StateMachine();
+
+        // Add combat-related states
+        stateMachine.addState(new CombatDecisionState(stateMachine));
+        stateMachine.addState(new LootSequenceState(stateMachine));
+
+        // Start the state machine
+        stateMachine.start();
+
+        log("State machine initialized and started.");
+    }
+
+    @Override
+    public int onLoop() {
+        if (stateMachine.isRunning()) {
+            stateMachine.update();
+        } else {
+            stop();  // Stop if no valid states are running
+        }
+        return 1000;  // Delay between loops
+    }
+
+    @Override
+    public void onExit() {
+        log("Stopping Bot...");
+    }
+}
+```
+
+### 2. **Creating States**
+
+Here’s how to create the states for attacking, healing, and looting.
+
+#### Attack State Example
+
+```java
+package States;
+
+import Framework.StateMachine.AbstractState;
+import Framework.StateMachine.StateMachine;
+
+import static org.dreambot.api.utilities.Logger.log;
+
+public class AttackState extends AbstractState {
+
+    public AttackState(StateMachine machine) {
+        super(machine);
+    }
+
+    @Override
+    public boolean isValid() {
+        return Players.getlocal.getHealthPercent() > 50 && !Players.getlocal.isInCombat(); 
+    }
+
+    @Override
+    public void enter() {
+        log("Entering Attack State");
+    }
+
+    @Override
+    public void execute() {
+        // Code to find and attack an NPC here
+        log("Executing Attack State");
+        complete = true;  // Mark as complete after attacking
+    }
+
+    @Override
+    public void exit() {
+        log("Exiting Attack State");
+    }
+}
+```
+
+#### Heal State Example
+
+```java
+package States;
+
+import Framework.StateMachine.AbstractState;
+import Framework.StateMachine.StateMachine;
+
+import static org.dreambot.api.utilities.Logger.log;
+
+public class HealState extends AbstractState {
+
+    public HealState(StateMachine machine) {
+        super(machine);
+    }
+
+    @Override
+    public boolean isValid() {
+        return Players.getlocal.getHealthPercent() < 50;  // Heal when health is below 50%
+    }
+
+    @Override
+    public void enter() {
+        log("Entering Heal State");
+    }
+
+    @Override
+    public void execute() {
+        // Code to eat food or heal
+        log("Executing Heal State");
+        complete = true;  // Mark as complete after healing
+    }
+
+    @Override
+    public void exit() {
+        log("Exiting Heal State");
+    }
+}
+```
+
+#### Loot State Example
+
+```java
+package States;
+
+import Framework.StateMachine.SequenceState;
+import Framework.StateMachine.StateMachine;
+
+import static org.dreambot.api.utilities.Logger.log;
+
+public class LootSequenceState extends SequenceState {
+
+    public LootSequenceState(StateMachine machine) {
+        super(machine);
+        addSubState(new WalkToLootState(machine));  // Walk to loot
+        addSubState(new PickupLootState(machine));  // Pick up loot
+    }
+
+    @Override
+    public boolean isValid() {
+        log("LootSequenceState isValid() called");
+        return !Inventory.isFull();  // Loot only if inventory isn't full
+    }
+}
+```
+
+### 3. **Creating Decision and Sequence States**
+
+`DecisionState` handles conditional logic, while `SequenceState` performs a series of actions in order.
+
+#### Combat Decision State
+
+```java
+package States;
+
+import Framework.StateMachine.DecisionState;
+import Framework.StateMachine.StateMachine;
+
+import static org.dreambot.api.utilities.Logger.log;
+
+public class CombatDecisionState extends DecisionState {
+
+    public CombatDecisionState(StateMachine machine) {
+        super(machine);
+        addSubState(new HealState(machine));  // Heal if health is low
+        addSubState(new AttackState(machine));  // Attack if not in combat and health is sufficient
+    }
+
+    @Override
+    public boolean isValid() {
+        log("CombatDecisionState isValid() called");
+        return true;  // Always valid during combat
+    }
+}
+```
+
+### 4. **Running the State Machine**
+
+After adding your states in the `onStart()` method, the state machine will automatically evaluate and run each state based on the game conditions.
+
+```java
+@Override
+public void onStart() {
+    log("Script Started...");
+
+    // Initialize the state machine
+    stateMachine = new StateMachine();
+
+    // Add states to handle combat and looting
+    stateMachine.addState(new CombatDecisionState(stateMachine));
+    stateMachine.addState(new LootSequenceState(stateMachine));
+
+    // Start the state machine
+    stateMachine.start();
+
+    log("State machine initialized and started.");
+}
+```
+
+---
+
+### Summary
+
+This framework offers a powerful and flexible way to build scalable bots using **DecisionState** and **SequenceState** structures. You can easily create nested decision-making trees or sequential tasks to handle even the most complex scenarios in OSRS botting.
+
+- **Always stays responsive**: The bot returns control to DreamBot after every state execution, allowing it to adapt to the latest game state.
+- **Dynamic decision-making**: With `DecisionState`, the bot can intelligently switch between actions based on conditions (e.g., heal, attack, or loot).
+- **Organized and scalable**: The framework allows easy addition of new states, making it suitable for both simple and complex bots.
+```
