@@ -55,15 +55,6 @@ The `DecisionState` class provides a branching mechanism where it checks each ch
 This hierarchical state machine framework is a powerful tool for building advanced OSRS bots, offering flexibility, adaptability, and efficiency while ensuring that your bot always operates in sync with the game's real-time state.
 
 ```markdown
-# OSRS Bot Hierarchical State Machine Framework
-
-This framework provides a flexible **hierarchical state machine** for developing advanced OSRS bots using DreamBot. With three main state types—`AbstractState`, `SequenceState`, and `DecisionState`—the framework allows for complex decision-making, sequential execution of tasks, and constant responsiveness to game state changes.
-
-## Key Features
-
-- **AbstractState**: Base class that all other states extend. Defines basic methods for entering, executing, exiting, and checking validity and completion.
-- **SequenceState**: Executes a series of subtasks in a specific order. Great for scenarios like looting multiple items or performing a series of combat moves.
-- **DecisionState**: Implements branching logic to determine which substate to run. It can contain both `SequenceState` and other `DecisionState` instances, allowing for nested decisions (e.g., should I heal, attack, or loot?).
 
 ## How the Framework Works
 
