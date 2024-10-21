@@ -1,285 +1,213 @@
-## About the Framework: Hierarchical State Machine for OSRS Botting
+## How-To Guide: Using the Modular State Machine Framework
 
-This framework provides a **hierarchical state machine** architecture designed for scalable, organized bot development in Old School RuneScape (OSRS). Built on a combination of three core classes—`AbstractState`, `SequenceState`, and `DecisionState`—this framework offers flexibility for handling complex decision-making, sequential task execution, and adaptive logic. The design prioritizes always staying responsive to game updates by never blocking the bot in a tight loop, ensuring smooth integration with DreamBot's `onLoop()` method.
+### Why This Framework Stands Out
 
-### Key Features
+The **Modular State Machine Framework** is designed with flexibility and efficiency at its core. Its strength lies in its ability to handle complex bot behaviors without compromising real-time responsiveness. This framework excels because:
 
-#### 1. **Three Core State Types:**
-- **AbstractState**: The foundation of all states, ensuring essential methods (`enter()`, `execute()`, `exit()`, `isComplete()`, and `isValid()`) are implemented in all states.
-- **SequenceState**: Executes multiple child states in sequential order. Once one substate completes, it proceeds to the next, ensuring tasks are executed step-by-step without interruption.
-- **DecisionState**: Implements branching logic, evaluating which substate is valid to run based on game conditions. The first valid substate is executed, allowing dynamic and conditional decisions. It can include `SequenceState` or other `DecisionState` objects as substates, enabling **nested decision-making**.
+- **Real-Time Responsiveness**: Unlike traditional state machines, this framework does not lock itself in a loop while executing tasks. Instead, it breaks tasks into smaller steps, ensuring that control is handed back to **DreamBot's `onLoop()` method** after each execution cycle. This allows the bot to stay responsive to real-time changes in the game state, avoiding issues like missing game updates or inputs.
+  
+- **One of the most powerful features of this framework is how it **dynamically manages task priority** while **preserving efficiency** in execution. Specifically, **DecisionStates** will reset to the top of their hierarchy once a valid substate completes, allowing them to re-evaluate conditions for dynamic decision-making. This ensures that decisions like healing or attacking are always based on the most up-to-date game state, giving the bot real-time adaptability.
 
-#### 2. **Nested State Handling:**
-One of the framework's most powerful features is its ability to **nest different state types** inside each other. You can mix `DecisionState` and `SequenceState` types to create **multi-layered decision-making** and sequential execution logic.
-- **DecisionState with Nested SequenceStates**: A `DecisionState` can decide which `SequenceState` to run based on game conditions. For example, it might choose to run a combat sequence if you're in combat or a healing sequence if your health is low.
-- **DecisionState within a DecisionState**: You can nest `DecisionState` objects inside other `DecisionState` objects, creating a hierarchy of conditional logic. This allows for **multi-level decision-making**, where one decision leads to another decision before settling on a sequence of actions.
+However, **SequenceStates** and **ActionStates** are different. Once they begin execution, they do **not re-evaluate parent states or conditions** after each cycle. These states are designed to **continue where they left off** until their task is complete. For example, if a combat sequence has started (e.g., switching prayers, switching weapons, attacking), it will run through the entire sequence without needing to check higher-level decision states after each step.
 
-This nesting capability ensures that your bot can handle highly complex scenarios without needing separate scripts for each.
+This combination of behaviours is what makes the framework so powerful. **Task prioritization is enforced when needed** (through DecisionStates), but **sequential actions execute uninterrupted** when conditions allow, ensuring efficient task handling without unnecessary reevaluation. The ability to return control to `onLoop()` after each state execution keeps the bot highly responsive, but the framework doesn’t force states to reset their hierarchy unless required. This means the bot can dynamically adjust its actions when necessary but stay focused on completing current tasks in an optimal flow. 
 
-#### 3. **Game State Responsiveness**:
-The framework is built with **bot responsiveness** as a priority. One key aspect is ensuring that the bot always returns control to DreamBot’s `onLoop()` method **between each state execution**, whether it's a `DecisionState`, `SequenceState`, or `AbstractState`. This ensures:
-- The bot is always working with the most up-to-date game state.
-- DreamBot can continue handling tasks in the background (e.g., game hooks, input, and interaction management).
-- The bot is never locked in an internal while-loop, which could freeze or make it unresponsive.
+This hybrid approach—**resetting only when necessary**—is what gives the bot both flexibility and efficiency, ensuring it reacts to the game state while maintaining task continuity.
 
-This design ensures that even while processing complex decision logic or executing long sequences of actions, the bot always gives control back to the DreamBot environment.
+- **Modular Design**: The framework is built with **modularity** in mind. By using **ActionStates**, **SequenceStates**, and **DecisionStates**, you can craft complex decision-making and task execution flows by combining smaller, reusable state components. This makes it easy to adapt the bot’s behavior to any game scenario without rewriting the entire state machine.
 
-#### 4. **Dynamic State Evaluation and Execution:**
-- **isValid()**: Each state has its own `isValid()` method, allowing the bot to check the game conditions and determine whether a state should execute. This makes the framework adaptive to game changes, enabling real-time responses to different scenarios.
-- **isComplete()**: The `isComplete()` method ensures that states are only marked as finished when they have completed their tasks. This feature is critical for sequential tasks where a series of actions must occur before moving on to the next state.
+- **Adaptive and Efficient**: The combination of `DecisionStates` and `SequenceStates` enables adaptive task execution based on game conditions. The bot can prioritize actions like healing, switching prayers, and attacking in the right context without getting stuck in unnecessary tasks.
 
-#### 5. **No Blocking Loops**:
-In contrast to systems where a state may keep control in a while-loop until completion, this framework **never gets stuck in a loop**. Each state, whether sequential or conditional, returns control back to `onLoop()` after every execution. This ensures that:
-- **DreamBot's core logic** continues to operate uninterrupted.
-- **Game conditions are always current**, as the bot constantly checks for updates.
-- States can be re-evaluated and adjusted as game conditions change, preventing the bot from getting stuck in outdated logic or frozen tasks.
+---
 
-#### 6. **Sequential Execution in SequenceState**:
-In `SequenceState`, a series of subtasks (or steps) are executed one after the other. Each substate must complete before moving to the next. However, even while executing these steps sequentially, the bot will always return to `onLoop()` between each substate, ensuring it stays responsive to the current game state.
+### Components Overview
 
-#### 7. **Decision-Based Execution in DecisionState**:
-The `DecisionState` class provides a branching mechanism where it checks each child state’s `isValid()` method to find the most appropriate task to run. If a nested `DecisionState` is valid, the bot can dive deeper into that decision tree, or if a `SequenceState` is valid, the bot will execute it in order.
+1. **ActionState**: Represents a single task that may execute over multiple cycles.
+2. **SequenceState**: Executes multiple substates in a predefined order, ideal for sequential tasks.
+3. **DecisionState**: Makes dynamic decisions by evaluating the validity of its substates, useful for conditional logic and task prioritization.
 
-#### 8. **State Transition and Looping:**
-- **After a state completes** (whether it’s a `SequenceState` or `DecisionState`), the state machine will always return to the top and start evaluating from the first state again. This ensures that the bot adapts in real-time to the current game conditions.
-- **Sequential States** continue their steps until completion, and **decision states** dynamically choose the appropriate state for the current context.
+---
 
-### Why This Framework is Effective
+### 1. Action State
 
-- **Mixed Nested States**: By mixing `DecisionState` and `SequenceState`, you can create highly complex yet organized logic for bots. The bot can easily switch between decision-making and sequential task execution within the same structure.
-- **Never Blocks**: The framework always returns control to `onLoop()` between executions, meaning the bot never gets stuck in a loop and remains fully responsive to the game environment.
-- **Dynamic and Flexible**: With nested decision-making and sequential execution, the bot can adapt to various scenarios, whether it's fighting, healing, training, or navigating.
-- **Real-Time Responsiveness**: Thanks to the bot always returning to the main loop, it continuously reacts to real-time game updates, keeping the logic fresh and applicable to current conditions.
-- **Ease of Use**: Adding new states or modifying existing logic is straightforward, and the `DecisionState` and `SequenceState` classes make it easy to organize both conditional logic and sequential tasks.
+#### Overview:
+The **ActionState** represents a single task or action like attacking, healing, or looting. These states can execute over multiple cycles until a condition is met. They don't require an `isValid()` check, making them useful in combination with `DecisionState` or `SequenceState`.
 
-This hierarchical state machine framework is a powerful tool for building advanced OSRS bots, offering flexibility, adaptability, and efficiency while ensuring that your bot always operates in sync with the game's real-time state.
+#### Features:
+- **Persistent Execution**: Continues executing its task until the goal is met.
+- **Flexible Completion**: Remains active until explicitly marked complete (e.g., attacking until an enemy dies, healing until health is full). By default, it marks itself as complete after one execution, but you can override `isComplete()` to control this behavior over multiple cycles.
 
-```markdown
+#### When to Use:
+- For single tasks that require multiple cycles, such as continuously attacking or healing.
+- For tasks that don’t need to be conditionally validated (pair with `DecisionState` or `SequenceState` for conditional logic).
 
-## How to Use the Framework
-
-### 1. **Setting Up the Main Class**
-
-Here’s a generic example of how to initialize the state machine in DreamBot:
+#### Example:
 
 ```java
-package Main;
-
-import Framework.StateMachine.StateMachine;
-import org.dreambot.api.script.AbstractScript;
-import org.dreambot.api.script.Category;
-import org.dreambot.api.script.ScriptManifest;
-
-import static org.dreambot.api.utilities.Logger.log;
-
-@ScriptManifest(author = "Your Name", name = "Combat State Machine Bot", version = 1.0, description = "A simple combat bot using state machine", category = Category.COMBAT)
-public class Main extends AbstractScript {
-    private StateMachine stateMachine;
-
-    @Override
-    public void onStart() {
-        log("Script Started...");
-
-        // Initialize the state machine
-        stateMachine = new StateMachine();
-
-        // Add combat-related states
-        stateMachine.addState(new CombatDecisionState(stateMachine));
-        stateMachine.addState(new LootSequenceState(stateMachine));
-
-        // Start the state machine
-        stateMachine.start();
-
-        log("State machine initialized and started.");
-    }
-
-    @Override
-    public int onLoop() {
-        if (stateMachine.isRunning()) {
-            stateMachine.update();
-        } else {
-            stop();  // Stop if no valid states are running
-        }
-        return 1000;  // Delay between loops
-    }
-
-    @Override
-    public void onExit() {
-        log("Stopping Bot...");
-    }
-}
-```
-
-### 2. **Creating States**
-
-Here’s how to create the states for attacking, healing, and looting.
-
-#### Attack State Example
-
-```java
-package States;
-
-import Framework.StateMachine.AbstractState;
-import Framework.StateMachine.StateMachine;
-
-import static org.dreambot.api.utilities.Logger.log;
-
 public class AttackState extends AbstractState {
-
     public AttackState(StateMachine machine) {
         super(machine);
     }
 
     @Override
-    public boolean isValid() {
-        return Players.getlocal.getHealthPercent() > 50 && !Players.getlocal.isInCombat(); 
-    }
-
-    @Override
     public void enter() {
-        log("Entering Attack State");
+        log("Entering AttackState");
+        super.enter();  // Automatically resets the completion flag on entry
     }
 
     @Override
     public void execute() {
-        // Code to find and attack an NPC here
-        log("Executing Attack State");
-        complete = true;  // Mark as complete after attacking
+        log("Executing AttackState: Attacking enemy...");
+        if (enemy.isAlive()) {
+            // Continue attacking
+            return;  // Early return keeps the bot responsive to real-time game updates
+        } else {
+            markComplete();  // Mark complete when enemy is defeated
+        }
     }
 
     @Override
     public void exit() {
-        log("Exiting Attack State");
+        log("Exiting AttackState");
     }
 }
 ```
 
-#### Heal State Example
-
-```java
-package States;
-
-import Framework.StateMachine.AbstractState;
-import Framework.StateMachine.StateMachine;
-
-import static org.dreambot.api.utilities.Logger.log;
-
-public class HealState extends AbstractState {
-
-    public HealState(StateMachine machine) {
-        super(machine);
-    }
-
-    @Override
-    public boolean isValid() {
-        return Players.getlocal.getHealthPercent() < 50;  // Heal when health is below 50%
-    }
-
-    @Override
-    public void enter() {
-        log("Entering Heal State");
-    }
-
-    @Override
-    public void execute() {
-        // Code to eat food or heal
-        log("Executing Heal State");
-        complete = true;  // Mark as complete after healing
-    }
-
-    @Override
-    public void exit() {
-        log("Exiting Heal State");
-    }
-}
-```
-
-#### Loot State Example
-
-```java
-package States;
-
-import Framework.StateMachine.SequenceState;
-import Framework.StateMachine.StateMachine;
-
-import static org.dreambot.api.utilities.Logger.log;
-
-public class LootSequenceState extends SequenceState {
-
-    public LootSequenceState(StateMachine machine) {
-        super(machine);
-        addSubState(new WalkToLootState(machine));  // Walk to loot
-        addSubState(new PickupLootState(machine));  // Pick up loot
-    }
-
-    @Override
-    public boolean isValid() {
-        log("LootSequenceState isValid() called");
-        return !Inventory.isFull();  // Loot only if inventory isn't full
-    }
-}
-```
-
-### 3. **Creating Decision and Sequence States**
-
-`DecisionState` handles conditional logic, while `SequenceState` performs a series of actions in order.
-
-#### Combat Decision State
-
-```java
-package States;
-
-import Framework.StateMachine.DecisionState;
-import Framework.StateMachine.StateMachine;
-
-import static org.dreambot.api.utilities.Logger.log;
-
-public class CombatDecisionState extends DecisionState {
-
-    public CombatDecisionState(StateMachine machine) {
-        super(machine);
-        addSubState(new HealState(machine));  // Heal if health is low
-        addSubState(new AttackState(machine));  // Attack if not in combat and health is sufficient
-    }
-
-    @Override
-    public boolean isValid() {
-        log("CombatDecisionState isValid() called");
-        return true;  // Always valid during combat
-    }
-}
-```
-
-### 4. **Running the State Machine**
-
-After adding your states in the `onStart()` method, the state machine will automatically evaluate and run each state based on the game conditions.
+#### Key Points:
+- **No Validity Check**: Action States don’t require an `isValid()` method; they execute as part of a sequence or decision.
+- **Early Returns**: Action States execute in steps and often use early returns to keep DreamBot responsive. This means they execute a portion of their task and return control to `onLoop()` to check the game state again before continuing.
+  
+Example of Early Return:
 
 ```java
 @Override
-public void onStart() {
-    log("Script Started...");
-
-    // Initialize the state machine
-    stateMachine = new StateMachine();
-
-    // Add states to handle combat and looting
-    stateMachine.addState(new CombatDecisionState(stateMachine));
-    stateMachine.addState(new LootSequenceState(stateMachine));
-
-    // Start the state machine
-    stateMachine.start();
-
-    log("State machine initialized and started.");
+public void execute() {
+    switch (playerState) {
+        case FIGHTING:
+            attackEnemy();
+            return;  // Return after partial execution
+        case RUNAWAY:
+            runFromNPC();
+            markComplete();  // Mark completion once the player retreats successfully
+            break;
+    }
 }
 ```
 
 ---
 
-### Summary
+### 2. SequenceState
 
-This framework offers a powerful and flexible way to build scalable bots using **DecisionState** and **SequenceState** structures. You can easily create nested decision-making trees or sequential tasks to handle even the most complex scenarios in OSRS botting.
+#### Overview:
+The **SequenceState** manages a series of tasks (substates) executed in a specific order. Each substate (whether an ActionState, SequenceState, or DecisionState) runs until it's marked complete, after which the sequence moves to the next subtask.
 
-- **Always stays responsive**: The bot returns control to DreamBot after every state execution, allowing it to adapt to the latest game state.
-- **Dynamic decision-making**: With `DecisionState`, the bot can intelligently switch between actions based on conditions (e.g., heal, attack, or loot).
-- **Organized and scalable**: The framework allows easy addition of new states, making it suitable for both simple and complex bots.
+#### Features:
+- **Sequential Execution**: Executes each substate in a fixed order, ensuring tasks are completed step-by-step.
+- **Nested Sequences**: Can contain other `SequenceStates` and `DecisionStates`, allowing you to build complex workflows.
+
+#### When to Use:
+- For tasks that must occur in a specific order (e.g., switching prayer, then switching weapons, then attacking).
+- For chaining multiple actions or decisions within a well-defined workflow.
+
+#### Example:
+
+```java
+public class CombatSequenceState extends SequenceState {
+    public CombatSequenceState(StateMachine machine) {
+        super(machine);
+        addSubState(new SwitchPrayerState(machine));  // Step 1: Switch prayer
+        addSubState(new SwitchWeaponState(machine));  // Step 2: Switch weapon
+        addSubState(new AttackState(machine));        // Step 3: Attack
+    }
+
+    @Override
+    public boolean isValid() {
+        return player.isInCombat();
+    }
+}
 ```
+
+#### Key Points:
+- **Sequential Execution**: Substates are executed in order, ensuring a structured flow of actions.
+- **No Validation for Substates**: Substates within a `SequenceState` don’t need to be validated; they run one after the other automatically.
+- **Nested Sequences**: `SequenceStates` can contain other sequences or decisions, creating multi-step workflows.
+  
+You can combine `DecisionState` and `SequenceState` to create more dynamic workflows:
+
+Example:
+```java
+public class NestedCombatState extends SequenceState {
+    public NestedCombatState(StateMachine machine) {
+        super(machine);
+        addSubState(new CombatDecisionState(machine));  // Combines decision logic with sequences
+        addSubState(new RetreatSequenceState(machine));  // Retreat if decision determines danger
+    }
+}
+```
+
+---
+
+### 3. DecisionState
+
+#### Overview:
+A **DecisionState** evaluates the `isValid()` method of its substates to decide which one to execute. The first valid substate is selected, allowing the bot to dynamically respond to changing game conditions (e.g., healing if low on health, or attacking otherwise).
+
+#### Features:
+- **Dynamic Decision-Making**: Executes the first valid substate, adapting to game conditions.
+- **Substate Flexibility**: Can contain ActionStates, SequenceStates, or other DecisionStates, allowing for flexible hierarchical decisions.
+
+#### When to Use:
+- For scenarios where dynamic prioritization is required (e.g., attack if health is good, heal otherwise).
+- For complex branching logic where the bot needs to evaluate multiple actions before proceeding.
+
+#### Example:
+
+```java
+public class CombatDecisionState extends DecisionState {
+    public CombatDecisionState(StateMachine machine) {
+        super(machine);
+        addSubState(new HealState(machine));   // Heal if low on health
+        addSubState(new SwitchPrayerState(machine)); // Switch prayer if needed
+        addSubState(new AttackState(machine)); // Attack if able
+    }
+
+    @Override
+    public boolean isValid() {
+        return player.isInCombat();
+    }
+}
+```
+
+#### Key Points:
+- **Conditional Logic**: `DecisionState` evaluates its substates based on `isValid()` methods and executes the first valid one.
+- **Resets After Completion**: Once a substate completes, the `DecisionState` returns to the top and starts evaluating substates again from the beginning.
+- **Nested Decisions**: You can nest multiple `DecisionStates` for more complex decision-making.
+
+---
+
+### Best Practices and Considerations
+
+#### Mixing States:
+- **DecisionState + SequenceState**: Combine these types to handle conditional logic and sequential workflows. For example, a `DecisionState` can determine whether to heal or attack, while a `SequenceState` manages the steps for attacking (switch prayer, switch weapon, attack).
+  
+#### Avoid Infinite Loops:
+- Ensure each state either marks itself as complete or transitions properly to avoid being stuck in the same state indefinitely. Use `markComplete()` when a task is finished.
+
+#### Real-Time Adaptation:
+- Each state returns control to DreamBot’s `onLoop()` method between executions. This keeps the bot responsive to real-time changes in the game, preventing it from getting stuck in long-running loops.
+
+#### Hierarchical Flexibility:
+- `DecisionState` can manage complex decision trees by nesting other `DecisionStates` within itself.
+- `SequenceState` ensures that tasks occur in the proper order, while combining it with `DecisionState` allows for dynamic prioritization of those tasks.
+
+---
+
+### Summary of State Types
+
+- **Action (Abstract) State**: Executes a single action across multiple cycles until marked complete. Usually doesn’t require conditional validation and can be paired with other state types.
+- **SequenceState**: Executes multiple substates in a defined order. Use it to chain actions together.
+- **DecisionState**: Dynamically evaluates substates and executes the first valid one. Ideal for handling conditional logic and decision-making.
+
+By mixing and
+
+ nesting these state types, you can create a flexible and adaptive bot framework capable of handling a wide range of in-game scenarios.
